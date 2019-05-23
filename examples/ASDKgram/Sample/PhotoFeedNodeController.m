@@ -93,6 +93,20 @@
   return ASCellNodeBlock;
 }
 
+static void InvalidateAccessibleElements(UIView *view) {
+  if (view.subviews.count > 0) {
+    for (UIView *subView in view.subviews) {
+      subView.accessibilityElements = nil;
+      InvalidateAccessibleElements(subView);
+    }
+  }
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView
+{
+  InvalidateAccessibleElements(self.view);
+}
+
 #pragma mark - ASTableDelegate methods
 
 // Receive a message that the tableView is near the end of its data set and more data should be fetched if necessary.

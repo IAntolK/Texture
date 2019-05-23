@@ -84,6 +84,8 @@
     self.automaticallyManagesSubnodes = YES;
 
     [self setupYogaLayoutIfNeeded];
+
+    self.accessibilityIdentifier = @"PhotoCellNode";
     
 #if DEBUG_PHOTOCELL_LAYOUT
     _userAvatarImageNode.backgroundColor              = [UIColor greenColor];
@@ -272,7 +274,7 @@
 - (ASTextNode *)createLayerBackedTextNodeWithString:(NSAttributedString *)attributedString
 {
   ASTextNode *textNode      = [[ASTextNode alloc] init];
-  textNode.layerBacked      = YES;
+//  textNode.layerBacked      = YES;
   textNode.attributedText = attributedString;
   return textNode;
 }

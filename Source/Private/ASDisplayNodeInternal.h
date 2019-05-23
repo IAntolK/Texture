@@ -153,6 +153,8 @@ static constexpr CACornerMask kASCACornerAllCorners =
   ASDisplayNodePerformanceMeasurementOptions _measurementOptions;
   ASDisplayNodeMethodOverrides _methodOverrides;
 
+  NSArray *_accessibilityElements;
+
 @protected
   ASDisplayNode * __weak _supernode;
   NSMutableArray<ASDisplayNode *> *_subnodes;

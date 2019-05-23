@@ -112,7 +112,7 @@ static void SortAccessibilityElements(NSMutableArray *elements)
 
 @end
 
-/// Collect all subnodes for the given node by walking down the subnode tree and calculates the screen coordinates based on the containerNode and container
+/// Collect all subnodes for the given node by walking down the subnode tree and calculates the screen coordinates based on the containerNode and container. This is necessary for layer backed nodes or rasterrized subtrees as no UIView instance for this node exists.
 static void CollectUIAccessibilityElementsForNode(ASDisplayNode *node, ASDisplayNode *containerNode, id container, NSMutableArray *elements)
 {
   ASDisplayNodeCAssertNotNil(elements, @"Should pass in a NSMutableArray");
@@ -127,6 +127,7 @@ static void CollectUIAccessibilityElementsForNode(ASDisplayNode *node, ASDisplay
   });
 }
 
+/// Called from the usual acccessibility elements collection function for a container to collect all subnodes accessibilityLabels
 static void CollectAccessibilityElementsForContainer(ASDisplayNode *container, UIView *view, NSMutableArray *elements) {
   UIAccessibilityElement *accessiblityElement = [ASAccessibilityElement accessibilityElementWithContainer:view node:container containerNode:container];
 
@@ -234,7 +235,8 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
       // Go down the hierarchy of the layer backed subnode and collect all of the UIAccessibilityElement
       CollectUIAccessibilityElementsForNode(subnode, node, view, elements);
     } else if ([subnode accessibilityElementCount] > 0) {
-      // UIView is itself a UIAccessibilityContainer just add it
+      // _ASDisplayView is itself a UIAccessibilityContainer just add it, UIKit will call the accessiblity
+      // methods of the nodes _ASDisplayView
       [elements addObject:subnode.view];
     }
   }
@@ -242,6 +244,10 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
 
 @interface _ASDisplayView () {
   NSArray *_accessibilityElements;
+  BOOL _inAccessibilityElementCount;
+  BOOL _inIndexOfAccessibilityElement;
+  BOOL _inAccessibilityElementAtIndex;
+  BOOL _inSetAccessibilityElements;
 }
 
 @end
@@ -250,10 +256,51 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
 
 #pragma mark - UIAccessibility
 
+- (NSInteger)accessibilityElementCount
+{
+  ASDisplayNodeAssertMainThread();
+  if (_inAccessibilityElementCount) {
+    return [super accessibilityElementCount];
+  }
+  _inAccessibilityElementCount = YES;
+  NSInteger accessibilityElementCount = [self.asyncdisplaykit_node accessibilityElementCount];
+  _inAccessibilityElementCount = NO;
+  return accessibilityElementCount;
+}
+
+- (NSInteger)indexOfAccessibilityElement:(id)element
+{
+  ASDisplayNodeAssertMainThread();
+  if (_inIndexOfAccessibilityElement) {
+    return [super indexOfAccessibilityElement:element];
+  }
+  _inIndexOfAccessibilityElement = YES;
+  NSInteger indexOfAccessibilityElement = [self.asyncdisplaykit_node indexOfAccessibilityElement:element];
+  _inIndexOfAccessibilityElement = NO;
+  return indexOfAccessibilityElement;
+}
+
+- (id)accessibilityElementAtIndex:(NSInteger)index
+{
+  ASDisplayNodeAssertMainThread();
+  if (_inAccessibilityElementAtIndex) {
+    return [super accessibilityElementAtIndex:index];
+  }
+  _inAccessibilityElementAtIndex = YES;
+  id accessibilityElement = [self.asyncdisplaykit_node accessibilityElementAtIndex:index];
+  _inAccessibilityElementAtIndex = NO;
+  return accessibilityElement;
+}
+
 - (void)setAccessibilityElements:(NSArray *)accessibilityElements
 {
   ASDisplayNodeAssertMainThread();
-  _accessibilityElements = accessibilityElements;
+  if (_inSetAccessibilityElements) {
+    return [super setAccessibilityElements:accessibilityElements];
+  }
+  _inSetAccessibilityElements = YES;
+  [self.asyncdisplaykit_node setAccessibilityElements:accessibilityElements];
+  _inSetAccessibilityElements = NO;
 }
 
 - (NSArray *)accessibilityElements
@@ -265,15 +312,32 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
     return @[];
   }
 
-  if (_accessibilityElements == nil) {
-    _accessibilityElements = [viewNode accessibilityElements];
-  }
-  return _accessibilityElements;
+  return [viewNode accessibilityElements];
 }
 
 @end
 
 @implementation ASDisplayNode (AccessibilityInternal)
+
+- (NSInteger)accessibilityElementCount
+{
+  return [_view accessibilityElementCount];
+}
+
+- (NSInteger)indexOfAccessibilityElement:(id)element
+{
+  return [_view indexOfAccessibilityElement:element];
+}
+
+- (id)accessibilityElementAtIndex:(NSInteger)index
+{
+  return [_view accessibilityElementAtIndex:index];
+}
+
+- (void)setAccessibilityElements:(NSArray *)accessibilityElements
+{
+  [_view setAccessibilityElements:accessibilityElements];
+}
 
 - (NSArray *)accessibilityElements
 {
@@ -281,37 +345,47 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
     ASDisplayNodeFailAssert(@"Cannot access accessibilityElements since node is not loaded");
     return @[];
   }
-  NSMutableArray *accessibilityElements = [[NSMutableArray alloc] init];
-  CollectAccessibilityElementsForView(self.view, accessibilityElements);
-  SortAccessibilityElements(accessibilityElements);
-  return accessibilityElements;
+
+  if (_accessibilityElements == nil) {
+    NSMutableArray *accessibilityElements = [[NSMutableArray alloc] init];
+    CollectAccessibilityElementsForView(self.view, accessibilityElements);
+    SortAccessibilityElements(accessibilityElements);
+    _accessibilityElements = accessibilityElements;
+  }
+  return _accessibilityElements;
 }
 
 @end
 
 @implementation _ASDisplayView (UIAccessibilityAction)
 
-- (BOOL)accessibilityActivate {
+- (BOOL)accessibilityActivate
+{
   return [self.asyncdisplaykit_node accessibilityActivate];
 }
 
-- (void)accessibilityIncrement {
+- (void)accessibilityIncrement
+{
   [self.asyncdisplaykit_node accessibilityIncrement];
 }
 
-- (void)accessibilityDecrement {
+- (void)accessibilityDecrement
+{
   [self.asyncdisplaykit_node accessibilityDecrement];
 }
 
-- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction {
+- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction
+{
   return [self.asyncdisplaykit_node accessibilityScroll:direction];
 }
 
-- (BOOL)accessibilityPerformEscape {
+- (BOOL)accessibilityPerformEscape
+{
   return [self.asyncdisplaykit_node accessibilityPerformEscape];
 }
 
-- (BOOL)accessibilityPerformMagicTap {
+- (BOOL)accessibilityPerformMagicTap
+{
   return [self.asyncdisplaykit_node accessibilityPerformMagicTap];
 }
 
