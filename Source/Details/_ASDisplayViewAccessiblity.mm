@@ -336,6 +336,7 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
 
 - (void)setAccessibilityElements:(NSArray *)accessibilityElements
 {
+  _accessibilityElements = accessibilityElements;
   [_view setAccessibilityElements:accessibilityElements];
 }
 

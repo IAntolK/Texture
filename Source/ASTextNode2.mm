@@ -195,8 +195,6 @@ static NSString *ASTextNodeTruncationTokenAttributeName = @"ASTextNodeTruncation
   ASTextNodeHighlightStyle _highlightStyle;
   BOOL _longPressCancelsTouches;
   BOOL _passthroughNonlinkTouches;
-
-  NSArray *_accessibleElements;
 }
 @dynamic placeholderEnabled;
 
@@ -332,123 +330,75 @@ static NSArray *DefaultLinkAttributeNames() {
   return UIAccessibilityTraitStaticText;
 }
 
-  - (NSInteger)accessibilityElementCount {
-    // Instead of implementing UIAccessibilityContainer's -accessibilityElements, we implement both
-    // -accessibilityElementAtIndex: and -accessibilityElementCount, so that we can update the
-    // element's accessibilityFrame when it is requested.
-    return [self accessibleElements].count;
-  }
-//
-- (id)accessibilityElementAtIndex:(NSInteger)index
-{
-  ASTextNodeAccessiblityElement *accessibilityElement = [self accessibleElements][index];
-  ASTextLayout *layout = ASTextNodeCompatibleLayoutWithContainerAndText(_textContainer, _attributedText);
+static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibilityElement, ASTextLayout *layout, UIView *view) {
   if (accessibilityElement.accessibilityRange.location == NSNotFound) {
     // If no accessibilityRange was specified (as is done for the text element), just use the label's frame.
-    CGRect range = [layout rectForRange:[ASTextRange rangeWithRange:NSMakeRange(0, _attributedText.length)]];
+    CGRect range = [layout rectForRange:[ASTextRange rangeWithRange:NSMakeRange(0, accessibilityElement.accessibilityLabel.length)]];
+    // Handle text is too large for the layout's text container size
     if (range.origin.x == INFINITY) {
       range = [layout rectForRange:[ASTextRange rangeWithRange:layout.visibleRange]];
     }
-    accessibilityElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(range, self.view);
+    accessibilityElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(range, view);
   } else {
     CGRect frame = [layout rectForRange:[ASTextRange rangeWithRange:accessibilityElement.accessibilityRange]];
-    accessibilityElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(frame, self.view);
+    accessibilityElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(frame, view);
   }
+}
+
+// Overwrite accessibilityElementAtIndex: so we can update the element's accessibilityFrame when it is requested.
+- (id)accessibilityElementAtIndex:(NSInteger)index
+{
+  ASTextNodeAccessiblityElement *accessibilityElement = self.accessibilityElements[index];
+  ASTextLayout *layout = ASTextNodeCompatibleLayoutWithContainerAndText(_textContainer, _attributedText);
+  ASUpdateAccessibilityFrame(accessibilityElement, layout, self.view);
   return accessibilityElement;
 }
 
-- (NSInteger)indexOfAccessibilityElement:(id)element
-  {
-    if (![element isKindOfClass:[ASTextNodeAccessiblityElement class]]) {
-      return [super indexOfAccessibilityElement:element];
-    }
-    ASTextNodeAccessiblityElement *accessibilityElement = element;
-    ASTextLayout *layout = ASTextNodeCompatibleLayoutWithContainerAndText(_textContainer, _attributedText);
-    if (accessibilityElement.accessibilityRange.location == NSNotFound) {
-      // If no accessibilityRange was specified (as is done for the text element), just use the label's frame.
-      CGRect range = [layout rectForRange:[ASTextRange rangeWithRange:NSMakeRange(0, _attributedText.length)]];
-      if (range.origin.x == INFINITY) {
-        range = [layout rectForRange:[ASTextRange rangeWithRange:layout.visibleRange]];
-      }
-      accessibilityElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(range, self.view);
-    } else {
-      CGRect frame = [layout rectForRange:[ASTextRange rangeWithRange:accessibilityElement.accessibilityRange]];
-      accessibilityElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(frame, self.view);
-    }
-    return [[self accessibleElements] indexOfObject:element];
-  }
-
-  - (NSArray *)accessibilityElements
-  {
-    return [self accessibleElements];
-  }
-
-  - (void)setAccessibilityElements:(NSArray *)accessibilityElements
-  {
-    [super setAccessibilityElements:accessibilityElements];
-    _accessibleElements = nil;
-  }
-
-- (NSArray *)accessibleElements
+- (NSArray *)accessibilityElements
 {
-  if (_accessibleElements != nil) {
-    return _accessibleElements;
+  if (_accessibilityElements != nil) {
+    return _accessibilityElements;
   }
 
-  NSMutableArray<ASTextNodeAccessiblityElement *> *accessibleElements = [[NSMutableArray alloc] init];
+  NSMutableArray<ASTextNodeAccessiblityElement *> *accessibilityElements = [[NSMutableArray alloc] init];
 
   // Example how to split up the attributed text
   NSAttributedString *attributedText = _attributedText;
-  if (attributedText.length > 0) {
-
-    ASTextLayout *layout = ASTextNodeCompatibleLayoutWithContainerAndText(_textContainer, attributedText);
-    CGRect range = [layout rectForRange:[ASTextRange rangeWithRange:NSMakeRange(0, attributedText.length)]];
-    if (range.origin.x == INFINITY) {
-      range = [layout rectForRange:[ASTextRange rangeWithRange:layout.visibleRange]];
-    }
-
-    // Create an accessibility element to represent the label's text. It's not necessary to specify
-    // a glyphRange here, as the entirety of the text is being represented.
-    ASTextNodeAccessiblityElement *textElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
-    textElement.accessibilityTraits = self.accessibilityTraits;
-    textElement.accessibilityLabel = attributedText.string;
-    textElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(range, self.view);
-    [accessibleElements addObject:textElement];
-
-    // TODO(maicki): Don't add if the range is not in the visible range
-    NSInteger half = attributedText.length / 2;
-
-    // The first half will be the front
-//    NSRange frontRange = NSMakeRange(0, half);
-//    if (NSIntersectionRange(layout.visibleRange, frontRange).location != NSNotFound) {
-//      NSAttributedString *frontText = [attributedText attributedSubstringFromRange:NSIntersectionRange(layout.visibleRange, frontRange)];
-//      CGRect frontTextFrame = [layout rectForRange:[ASTextRange rangeWithRange:frontRange]];
-//      ASTextNodeAccessiblityElement *frontTextElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
-//      frontTextElement.accessibilityTraits = self.accessibilityTraits;
-//      frontTextElement.accessibilityLabel = frontText.string;
-//      frontTextElement.accessibilityIdentifier = frontText.string;
-//      frontTextElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(frontTextFrame, self.view);
-//      frontTextElement.accessibilityRange = frontRange;
-//
-//      [accessibleElements addObject:frontTextElement];
-//    }
-//
-//    // Prevent overflowing
-//    NSRange backRange = NSMakeRange(half, MIN(attributedText.length - half, half+1));
-//    if (NSIntersectionRange(layout.visibleRange, backRange).location != NSNotFound) {
-//      NSAttributedString *backText = [attributedText attributedSubstringFromRange:backRange];
-//      CGRect backTextFrame = [layout rectForRange:[ASTextRange rangeWithRange:NSIntersectionRange(layout.visibleRange, backRange)]];
-//      ASTextNodeAccessiblityElement *backTextElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
-//      backTextElement.accessibilityTraits = self.accessibilityTraits;
-//      backTextElement.accessibilityLabel = backText.string;
-//      backTextElement.accessibilityIdentifier = backText.string;
-//      backTextElement.accessibilityFrame = UIAccessibilityConvertFrameToScreenCoordinates(backTextFrame, self.view);
-//      backTextElement.accessibilityRange = backRange;
-//      [accessibleElements addObject:backTextElement];
-//    }
+  if (attributedText.length == 0) {
+    _accessibilityElements = accessibilityElements;
+    return _accessibilityElements;
   }
-  _accessibleElements = accessibleElements;
-  return _accessibleElements;
+
+  UIView *view = self.view;
+  UIAccessibilityTraits accessibilityTraits = self.accessibilityTraits;
+  ASTextLayout *layout = ASTextNodeCompatibleLayoutWithContainerAndText(_textContainer, attributedText);
+
+// Create an accessibility element to represent the label's text. It's not necessary to specify
+// a glyphRange here, as the entirety of the text is being represented.
+  ASTextNodeAccessiblityElement *accessibilityElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
+  accessibilityElement.accessibilityTraits = accessibilityTraits;
+  accessibilityElement.accessibilityLabel = attributedText.string;
+  ASUpdateAccessibilityFrame(accessibilityElement, layout, view);
+  [accessibilityElements addObject:accessibilityElement];
+
+  // Collect all links as accessiblity items
+  NSRange range = NSMakeRange(0, attributedText.length);
+  for (NSString *linkAttributeName in _linkAttributeNames) {
+    [attributedText enumerateAttribute:linkAttributeName inRange:range options:NSAttributedStringEnumerationLongestEffectiveRangeNotRequired usingBlock:^(id  _Nullable value, NSRange range, BOOL * _Nonnull stop) {
+      if (value == nil) {
+        return;
+      }
+      
+      ASTextNodeAccessiblityElement *accessibilityElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
+      accessibilityElement.accessibilityTraits = accessibilityTraits;
+      accessibilityElement.accessibilityLabel = [attributedText attributedSubstringFromRange:range].string;
+      accessibilityElement.accessibilityRange = range;
+      ASUpdateAccessibilityFrame(accessibilityElement, layout, view);
+      [accessibilityElements addObject:accessibilityElement];
+    }];
+  }
+  _accessibilityElements = accessibilityElements;
+  return _accessibilityElements;
 }
 
 - (BOOL)isAccessibilityElement {
