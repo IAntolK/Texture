@@ -232,7 +232,6 @@ static NSArray *DefaultLinkAttributeNames() {
     self.linkAttributeNames = DefaultLinkAttributeNames();
 
     // Accessibility
-//    self.isAccessibilityElement = YES;
     self.accessibilityTraits = self.defaultAccessibilityTraits;
 
     // Placeholders
@@ -528,15 +527,6 @@ static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibil
   
   // Force display to create renderer with new size and redisplay with new string
   [self setNeedsDisplay];
-
-  // Accessiblity
-//  self.accessibilityLabel = self.defaultAccessibilityLabel;
-
-  // We update the isAccessibilityElement setting if this node is not switching between strings.
-  if (oldAttributedText.length == 0 || length == 0) {
-    // We're an accessibility element by default if there is a string.
-//    self.isAccessibilityElement = (length != 0);
-  }
 
 #if AS_TEXTNODE2_RECORD_ATTRIBUTED_STRINGS
   [ASTextNode _registerAttributedText:_attributedText];

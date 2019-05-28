@@ -96,16 +96,6 @@ static NSString * const kCellReuseIdentifier = @"_ASTableViewCell";
   [super didTransitionToState:state];
 }
 
-//- (BOOL)isAccessibilityElement
-//{
-//  return NO;
-//}
-//
-//- (NSArray *)accessibilityElements
-//{
-//  return [self.node accessibilityElements];
-//}
-
 - (ASCellNode *)node
 {
   return self.element.node;

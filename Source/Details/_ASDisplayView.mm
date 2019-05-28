@@ -77,12 +77,8 @@ static _ASDisplayViewMethodOverrides GetASDisplayViewMethodOverrides(Class c)
   BOOL _inHitTest;
   BOOL _inPointInside;
 
-  NSArray *_accessibilityElements;
-  BOOL _inAccessibilityElementCount;
-  BOOL _inIndexOfAccessibilityElement;
-  BOOL _inAccessibilityElementAtIndex;
-  BOOL _inSetAccessibilityElements;
-  
+  _ASDisplayViewAccessibilityFlags _accessibilityFlags;
+
   _ASDisplayViewMethodOverrides _methodOverrides;
 }
 

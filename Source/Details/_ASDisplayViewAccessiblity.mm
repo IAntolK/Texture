@@ -9,6 +9,7 @@
 
 #ifndef ASDK_ACCESSIBILITY_DISABLE
 
+#import <AsyncDisplayKit/_ASDisplayViewAccessiblity.h>
 #import <AsyncDisplayKit/_ASDisplayView.h>
 #import <AsyncDisplayKit/ASAvailability.h>
 #import <AsyncDisplayKit/ASCollectionNode.h>
@@ -243,11 +244,7 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
 }
 
 @interface _ASDisplayView () {
-  NSArray *_accessibilityElements;
-  BOOL _inAccessibilityElementCount;
-  BOOL _inIndexOfAccessibilityElement;
-  BOOL _inAccessibilityElementAtIndex;
-  BOOL _inSetAccessibilityElements;
+  _ASDisplayViewAccessibilityFlags _accessibilityFlags;
 }
 
 @end
@@ -259,48 +256,48 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
 - (NSInteger)accessibilityElementCount
 {
   ASDisplayNodeAssertMainThread();
-  if (_inAccessibilityElementCount) {
+  if (_accessibilityFlags.inAccessibilityElementCount) {
     return [super accessibilityElementCount];
   }
-  _inAccessibilityElementCount = YES;
+  _accessibilityFlags.inAccessibilityElementCount = YES;
   NSInteger accessibilityElementCount = [self.asyncdisplaykit_node accessibilityElementCount];
-  _inAccessibilityElementCount = NO;
+  _accessibilityFlags.inAccessibilityElementCount = NO;
   return accessibilityElementCount;
 }
 
 - (NSInteger)indexOfAccessibilityElement:(id)element
 {
   ASDisplayNodeAssertMainThread();
-  if (_inIndexOfAccessibilityElement) {
+  if (_accessibilityFlags.inIndexOfAccessibilityElement) {
     return [super indexOfAccessibilityElement:element];
   }
-  _inIndexOfAccessibilityElement = YES;
+  _accessibilityFlags.inIndexOfAccessibilityElement = YES;
   NSInteger indexOfAccessibilityElement = [self.asyncdisplaykit_node indexOfAccessibilityElement:element];
-  _inIndexOfAccessibilityElement = NO;
+  _accessibilityFlags.inIndexOfAccessibilityElement = NO;
   return indexOfAccessibilityElement;
 }
 
 - (id)accessibilityElementAtIndex:(NSInteger)index
 {
   ASDisplayNodeAssertMainThread();
-  if (_inAccessibilityElementAtIndex) {
+  if (_accessibilityFlags.inAccessibilityElementAtIndex) {
     return [super accessibilityElementAtIndex:index];
   }
-  _inAccessibilityElementAtIndex = YES;
+  _accessibilityFlags.inAccessibilityElementAtIndex = YES;
   id accessibilityElement = [self.asyncdisplaykit_node accessibilityElementAtIndex:index];
-  _inAccessibilityElementAtIndex = NO;
+  _accessibilityFlags.inAccessibilityElementAtIndex = NO;
   return accessibilityElement;
 }
 
 - (void)setAccessibilityElements:(NSArray *)accessibilityElements
 {
   ASDisplayNodeAssertMainThread();
-  if (_inSetAccessibilityElements) {
+  if (_accessibilityFlags.inSetAccessibilityElements) {
     return [super setAccessibilityElements:accessibilityElements];
   }
-  _inSetAccessibilityElements = YES;
+  _accessibilityFlags.inSetAccessibilityElements = YES;
   [self.asyncdisplaykit_node setAccessibilityElements:accessibilityElements];
-  _inSetAccessibilityElements = NO;
+  _accessibilityFlags.inSetAccessibilityElements = NO;
 }
 
 - (NSArray *)accessibilityElements
