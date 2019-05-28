@@ -36,6 +36,12 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly) BOOL usingExperiment;
 
 /**
+ * A Boolean indicating if the text node will expose links within the attributedText
+ * as UIAccessibitlyElements
+ */
+@property (nonatomic) BOOL accessibilityExposeLinksAsAccessibilityElements;
+
+/**
  * Returns a Boolean indicating if the text node will truncate for the given constrained size
  */
 - (BOOL)shouldTruncateForConstrainedSize:(ASSizeRange)constrainedSize;

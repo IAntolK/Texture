@@ -195,6 +195,8 @@ static NSString *ASTextNodeTruncationTokenAttributeName = @"ASTextNodeTruncation
   ASTextNodeHighlightStyle _highlightStyle;
   BOOL _longPressCancelsTouches;
   BOOL _passthroughNonlinkTouches;
+
+  BOOL _accessibilityExposeLinksAsAccessibilityElements;
 }
 @dynamic placeholderEnabled;
 
@@ -330,6 +332,18 @@ static NSArray *DefaultLinkAttributeNames() {
   return UIAccessibilityTraitStaticText;
 }
 
+- (BOOL)accessibilityExposeLinksAsAccessibilityElements
+{
+  ASLockScopeSelf();
+  return _accessibilityExposeLinksAsAccessibilityElements;
+}
+
+- (void)setAccessibilityExposeLinksAsAccessibilityElements:(BOOL)accessibilityExposeLinksAsAccessibilityElements
+{
+  ASLockScopeSelf();
+  _accessibilityExposeLinksAsAccessibilityElements = accessibilityExposeLinksAsAccessibilityElements;
+}
+
 static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibilityElement, ASTextLayout *layout, UIView *view) {
   if (accessibilityElement.accessibilityRange.location == NSNotFound) {
     // If no accessibilityRange was specified (as is done for the text element), just use the label's frame.
@@ -364,7 +378,8 @@ static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibil
 
   // Example how to split up the attributed text
   NSAttributedString *attributedText = _attributedText;
-  if (attributedText.length == 0) {
+  NSInteger attributedTextLength = attributedText.length;
+  if (attributedTextLength == 0) {
     _accessibilityElements = accessibilityElements;
     return _accessibilityElements;
   }
@@ -381,21 +396,22 @@ static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibil
   ASUpdateAccessibilityFrame(accessibilityElement, layout, view);
   [accessibilityElements addObject:accessibilityElement];
 
-  // Collect all links as accessiblity items
-  NSRange range = NSMakeRange(0, attributedText.length);
-  for (NSString *linkAttributeName in _linkAttributeNames) {
-    [attributedText enumerateAttribute:linkAttributeName inRange:range options:NSAttributedStringEnumerationLongestEffectiveRangeNotRequired usingBlock:^(id  _Nullable value, NSRange range, BOOL * _Nonnull stop) {
-      if (value == nil) {
-        return;
-      }
-      
-      ASTextNodeAccessiblityElement *accessibilityElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
-      accessibilityElement.accessibilityTraits = accessibilityTraits;
-      accessibilityElement.accessibilityLabel = [attributedText attributedSubstringFromRange:range].string;
-      accessibilityElement.accessibilityRange = range;
-      ASUpdateAccessibilityFrame(accessibilityElement, layout, view);
-      [accessibilityElements addObject:accessibilityElement];
-    }];
+  if (_accessibilityExposeLinksAsAccessibilityElements) {
+    // Collect all links as accessiblity items
+    for (NSString *linkAttributeName in _linkAttributeNames) {
+      [attributedText enumerateAttribute:linkAttributeName inRange:NSMakeRange(0, attributedTextLength) options:NSAttributedStringEnumerationLongestEffectiveRangeNotRequired usingBlock:^(id  _Nullable value, NSRange range, BOOL * _Nonnull stop) {
+        if (value == nil) {
+          return;
+        }
+
+        ASTextNodeAccessiblityElement *accessibilityElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
+        accessibilityElement.accessibilityTraits = accessibilityTraits;
+        accessibilityElement.accessibilityLabel = [attributedText attributedSubstringFromRange:range].string;
+        accessibilityElement.accessibilityRange = range;
+        ASUpdateAccessibilityFrame(accessibilityElement, layout, view);
+        [accessibilityElements addObject:accessibilityElement];
+      }];
+    }
   }
   _accessibilityElements = accessibilityElements;
   return _accessibilityElements;
