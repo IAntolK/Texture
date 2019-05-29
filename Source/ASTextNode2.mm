@@ -195,8 +195,6 @@ static NSString *ASTextNodeTruncationTokenAttributeName = @"ASTextNodeTruncation
   ASTextNodeHighlightStyle _highlightStyle;
   BOOL _longPressCancelsTouches;
   BOOL _passthroughNonlinkTouches;
-
-  BOOL _accessibilityExposeLinksAsAccessibilityElements;
 }
 @dynamic placeholderEnabled;
 
@@ -331,18 +329,6 @@ static NSArray *DefaultLinkAttributeNames() {
   return UIAccessibilityTraitStaticText;
 }
 
-- (BOOL)accessibilityExposeLinksAsAccessibilityElements
-{
-  ASLockScopeSelf();
-  return _accessibilityExposeLinksAsAccessibilityElements;
-}
-
-- (void)setAccessibilityExposeLinksAsAccessibilityElements:(BOOL)accessibilityExposeLinksAsAccessibilityElements
-{
-  ASLockScopeSelf();
-  _accessibilityExposeLinksAsAccessibilityElements = accessibilityExposeLinksAsAccessibilityElements;
-}
-
 static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibilityElement, ASTextLayout *layout, UIView *view) {
   if (accessibilityElement.accessibilityRange.location == NSNotFound) {
     // If no accessibilityRange was specified (as is done for the text element), just use the label's frame.
@@ -387,15 +373,15 @@ static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibil
   UIAccessibilityTraits accessibilityTraits = self.accessibilityTraits;
   ASTextLayout *layout = ASTextNodeCompatibleLayoutWithContainerAndText(_textContainer, attributedText);
 
-// Create an accessibility element to represent the label's text. It's not necessary to specify
-// a glyphRange here, as the entirety of the text is being represented.
+  // Create an accessibility element to represent the label's text. It's not necessary to specify
+  // a accessibilityRange here, as the entirety of the text is being represented.
   ASTextNodeAccessiblityElement *accessibilityElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
   accessibilityElement.accessibilityTraits = accessibilityTraits;
   accessibilityElement.accessibilityLabel = self.accessibilityLabel;
   ASUpdateAccessibilityFrame(accessibilityElement, layout, view);
   [accessibilityElements addObject:accessibilityElement];
 
-  if (_accessibilityExposeLinksAsAccessibilityElements) {
+  if (ASActivateExperimentalFeature(ASExperimentalExposeTextLinksForA11Y)) {
     // Collect all links as accessiblity items
     for (NSString *linkAttributeName in _linkAttributeNames) {
       [attributedText enumerateAttribute:linkAttributeName inRange:NSMakeRange(0, attributedTextLength) options:NSAttributedStringEnumerationLongestEffectiveRangeNotRequired usingBlock:^(id  _Nullable value, NSRange range, BOOL * _Nonnull stop) {

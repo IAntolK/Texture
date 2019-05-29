@@ -386,17 +386,6 @@ static NSArray *DefaultLinkAttributeNames() {
   };
 }
 
-- (BOOL)accessibilityExposeLinksAsAccessibilityElements
-{
-  AS_TEXT_ALERT_UNIMPLEMENTED_FEATURE();
-  return NO;
-}
-
-- (void)setAccessibilityExposeLinksAsAccessibilityElements:(BOOL)accessibilityExposeLinksAsAccessibilityElements
-{
-  AS_TEXT_ALERT_UNIMPLEMENTED_FEATURE();
-}
-
 - (NSString *)defaultAccessibilityLabel
 {
   ASLockScopeSelf();

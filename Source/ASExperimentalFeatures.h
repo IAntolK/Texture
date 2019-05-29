@@ -32,6 +32,7 @@ typedef NS_OPTIONS(NSUInteger, ASExperimentalFeatures) {
   ASExperimentalTransactionOperationRetainCycle = 1 << 11,  // exp_transaction_operation_retain_cycle
   ASExperimentalRemoveTextKitInitialisingLock = 1 << 12,    // exp_remove_textkit_initialising_lock
   ASExperimentalDrawingGlobal = 1 << 13,                    // exp_drawing_global
+  ASExperimentalExposeTextLinksForA11Y = 1 << 14,           // exp_expose_text_links_a11y
   ASExperimentalFeatureAll = 0xFFFFFFFF
 };
 
