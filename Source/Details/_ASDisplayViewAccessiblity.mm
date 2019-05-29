@@ -114,16 +114,20 @@ static void SortAccessibilityElements(NSMutableArray *elements)
 @end
 
 /// Collect all subnodes for the given node by walking down the subnode tree and calculates the screen coordinates based on the containerNode and container. This is necessary for layer backed nodes or rasterrized subtrees as no UIView instance for this node exists.
-static void CollectUIAccessibilityElementsForNode(ASDisplayNode *node, ASDisplayNode *containerNode, id container, NSMutableArray *elements)
+static void CollectUIAccessibilityElementsForNode(ASDisplayNode *node, ASDisplayNode *containerNode, UIView *container, NSMutableArray *elements)
 {
   ASDisplayNodeCAssertNotNil(elements, @"Should pass in a NSMutableArray");
   
   ASDisplayNodePerformBlockOnEveryNodeBFS(node, ^(ASDisplayNode * _Nonnull currentNode) {
     // For every subnode that is layer backed or it's supernode has subtree rasterization enabled
     // we have to create a UIAccessibilityElement as no view for this node exists
-    if (currentNode != containerNode && currentNode.isAccessibilityElement) {
-      UIAccessibilityElement *accessibilityElement = [ASAccessibilityElement accessibilityElementWithContainer:container node:currentNode containerNode:containerNode];
-      [elements addObject:accessibilityElement];
+    if (currentNode != containerNode) {
+      if (currentNode.isAccessibilityElement) {
+        UIAccessibilityElement *accessibilityElement = [ASAccessibilityElement accessibilityElementWithContainer:container node:currentNode containerNode:containerNode];
+        [elements addObject:accessibilityElement];
+      } else {
+        [elements addObjectsFromArray:currentNode.accessibilityElements];
+      }
     }
   });
 }
@@ -219,10 +223,10 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
     CollectUIAccessibilityElementsForNode(node, node, view, elements);
     return;
   }
-  
+
+  // Go down each subnodes and collect all accessibility elements
   for (ASDisplayNode *subnode in node.subnodes) {
     if (subnode.isAccessibilityElement) {
-      
       // An accessiblityElement can either be a UIView or a UIAccessibilityElement
       if (subnode.isLayerBacked) {
         // No view for layer backed nodes exist. It's necessary to create a UIAccessibilityElement that represents this node
@@ -233,7 +237,7 @@ static void CollectAccessibilityElementsForView(UIView *view, NSMutableArray *el
         [elements addObject:subnode.view];
       }
     } else if (subnode.isLayerBacked) {
-      // Go down the hierarchy of the layer backed subnode and collect all of the UIAccessibilityElement
+      // Go down the hierarchy for layer backed subnodes and collect all of the UIAccessibilityElement
       CollectUIAccessibilityElementsForNode(subnode, node, view, elements);
     } else if ([subnode accessibilityElementCount] > 0) {
       // _ASDisplayView is itself a UIAccessibilityContainer just add it, UIKit will call the accessiblity
