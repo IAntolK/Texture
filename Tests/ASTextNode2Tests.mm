@@ -28,6 +28,11 @@
 - (void)setUp
 {
   [super setUp];
+
+  ASConfiguration *config = [[ASConfiguration alloc] initWithDictionary:nil];
+  config.experimentalFeatures = ASExperimentalExposeTextLinksForA11Y;
+  [ASConfigurationManager test_resetWithConfiguration:config];
+
   _textNode = [[ASTextNode2 alloc] init];
 
   UIFontDescriptor *desc = [UIFontDescriptor fontDescriptorWithName:@"Didot" size:18];
@@ -97,6 +102,21 @@
   XCTAssertTrue([[_textNode.accessibilityElements[0] accessibilityLabel] isEqualToString:_attributedText.string],
                 @"First accessibility element incorrectly returns \n%@\n when it should be \n%@\n",
                 [_textNode.accessibilityElements[0] accessibilityLabel], _textNode.accessibilityLabel);
+}
+
+- (void)testExposeA11YLinks
+{
+  NSString *link = @"https://texturegroup.com";
+  NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"Texture Website: %@", link]];
+  NSRange linkRange = [attributedText.string rangeOfString:link];
+  [attributedText addAttribute:NSLinkAttributeName value:link range:linkRange];
+
+  _textNode.attributedText = attributedText;
+
+  NSArray<UIAccessibilityElement *> *accessibilityElements = _textNode.accessibilityElements;
+  XCTAssertTrue(accessibilityElements.count == 2, @"Link should be exposed as accessibility element");
+  XCTAssertTrue([[accessibilityElements[0] accessibilityLabel] isEqualToString:attributedText.string], @"First accessibility element should be the full text");
+  XCTAssertTrue([[accessibilityElements[1] accessibilityLabel] isEqualToString:link], @"Secon accessibility element should be the link");
 }
 
 @end
