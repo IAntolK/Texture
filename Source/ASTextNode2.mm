@@ -391,7 +391,7 @@ static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibil
 // a glyphRange here, as the entirety of the text is being represented.
   ASTextNodeAccessiblityElement *accessibilityElement = [[ASTextNodeAccessiblityElement alloc] initWithAccessibilityContainer:self];
   accessibilityElement.accessibilityTraits = accessibilityTraits;
-  accessibilityElement.accessibilityLabel = attributedText.string;
+  accessibilityElement.accessibilityLabel = self.accessibilityLabel;
   ASUpdateAccessibilityFrame(accessibilityElement, layout, view);
   [accessibilityElements addObject:accessibilityElement];
 
@@ -507,7 +507,6 @@ static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibil
   // Holding it for the duration of the method is more efficient in this case.
   ASLockScopeSelf();
 
-  NSAttributedString *oldAttributedText = _attributedText;
   if (!ASCompareAssignCopy(_attributedText, attributedText)) {
     return;
   }
@@ -521,6 +520,9 @@ static void ASUpdateAccessibilityFrame(ASTextNodeAccessiblityElement *accessibil
     style.ascender = [[self class] ascenderWithAttributedString:attributedText];
     style.descender = [[attributedText attribute:NSFontAttributeName atIndex:attributedText.length - 1 effectiveRange:NULL] descender];
   }
+
+  // Accessiblity
+  self.accessibilityLabel = self.defaultAccessibilityLabel;
   
   // Tell the display node superclasses that the cached layout is incorrect now
   [self setNeedsLayout];
