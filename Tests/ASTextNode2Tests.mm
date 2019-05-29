@@ -74,7 +74,7 @@
 
 - (void)testAccessibility
 {
-  XCTAssertTrue(_textNode.isAccessibilityElement, @"Should be an accessibility element");
+  XCTAssertFalse(_textNode.isAccessibilityElement, @"Is not an accessiblity element as it's a UIAccessibilityContainer");
   XCTAssertTrue(_textNode.accessibilityTraits == UIAccessibilityTraitStaticText,
                 @"Should have static text accessibility trait, instead has %llu",
                 _textNode.accessibilityTraits);
@@ -89,22 +89,14 @@
   XCTAssertTrue([_textNode.defaultAccessibilityLabel isEqualToString:_attributedText.string],
                 @"Default accessibility label incorrectly returns \n%@\n when it should be \n%@\n",
                 _textNode.defaultAccessibilityLabel, _attributedText.string);
-}
 
-- (void)testRespectingAccessibilitySetting
-{
-  ASTextNode2 *textNode = [[ASTextNode2 alloc] init];
-  textNode.attributedText = _attributedText;
-  textNode.isAccessibilityElement = NO;
-  
-  textNode.attributedText = [[NSAttributedString alloc] initWithString:@"new string"];
-  XCTAssertFalse(textNode.isAccessibilityElement);
-  
-  // Ensure removing string on an accessible text node updates the setting.
-  ASTextNode2 *accessibleTextNode = [ASTextNode2 new];
-  accessibleTextNode.attributedText = _attributedText;
-  accessibleTextNode.attributedText = nil;
-  XCTAssertFalse(accessibleTextNode.isAccessibilityElement);
+  XCTAssertTrue(_textNode.accessibilityElements.count == 1, @"Accessibility elements should exist");
+  XCTAssertTrue([[_textNode.accessibilityElements[0] accessibilityLabel] isEqualToString:_attributedText.string],
+                @"First accessibility element incorrectly returns \n%@\n when it should be \n%@\n",
+                [_textNode.accessibilityElements[0] accessibilityLabel], _textNode.accessibilityLabel);
+  XCTAssertTrue([[_textNode.accessibilityElements[0] accessibilityLabel] isEqualToString:_attributedText.string],
+                @"First accessibility element incorrectly returns \n%@\n when it should be \n%@\n",
+                [_textNode.accessibilityElements[0] accessibilityLabel], _textNode.accessibilityLabel);
 }
 
 @end
