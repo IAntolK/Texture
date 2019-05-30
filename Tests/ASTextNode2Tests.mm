@@ -77,7 +77,7 @@
   XCTAssertTrue(_textNode.isTruncated, @"Text Node should be truncated");
 }
 
-- (void)testAccessibility
+- (void)testBasicAccessibility
 {
   XCTAssertFalse(_textNode.isAccessibilityElement, @"Is not an accessiblity element as it's a UIAccessibilityContainer");
   XCTAssertTrue(_textNode.accessibilityTraits == UIAccessibilityTraitStaticText,
@@ -104,7 +104,63 @@
                 [_textNode.accessibilityElements[0] accessibilityLabel], _textNode.accessibilityLabel);
 }
 
-- (void)testExposeA11YLinks
+- (void)testAccessibilityLayerBackedContainerAndTextNode2
+{
+  // TODO(maicki): Implement
+  ASDisplayNode *container = [[ASDisplayNode alloc] init];
+  container.frame = CGRectMake(50, 50, 200, 600);
+  container.backgroundColor = [UIColor grayColor];
+
+  ASDisplayNode *layerBackedContainer = [[ASDisplayNode alloc] init];
+  layerBackedContainer.layerBacked = YES;
+  layerBackedContainer.frame = CGRectMake(50, 50, 200, 600);
+  layerBackedContainer.backgroundColor = [UIColor grayColor];
+  [container addSubnode:layerBackedContainer];
+
+  ASTextNode2 *text = [[ASTextNode2 alloc] init];
+  text.layerBacked = YES;
+  text.attributedText = [[NSAttributedString alloc] initWithString:@"hello"];
+  text.frame = CGRectMake(50, 100, 200, 200);
+  [layerBackedContainer addSubnode:text];
+
+  ASTextNode2 *text2 = [[ASTextNode2 alloc] init];
+  text2.layerBacked = YES;
+  text2.attributedText = [[NSAttributedString alloc] initWithString:@"world"];
+  text2.frame = CGRectMake(50, 100, 200, 200);
+  [layerBackedContainer addSubnode:text2];
+
+  NSArray<UIAccessibilityElement *> *elements = container.view.accessibilityElements;
+  XCTAssertTrue(elements.count == 2);
+  XCTAssertTrue([[elements[0] accessibilityLabel] isEqualToString:@"hello"]);
+  XCTAssertTrue([[elements[1] accessibilityLabel] isEqualToString:@"world"]);
+}
+
+- (void)testAccessibilityLayerBackedTextNode2
+{
+  ASDisplayNode *container = [[ASDisplayNode alloc] init];
+  container.frame = CGRectMake(50, 50, 200, 600);
+  container.backgroundColor = [UIColor grayColor];
+
+  ASTextNode2 *text = [[ASTextNode2 alloc] init];
+  text.layerBacked = YES;
+  text.attributedText = [[NSAttributedString alloc] initWithString:@"hello"];
+  text.frame = CGRectMake(50, 100, 200, 200);
+  [container addSubnode:text];
+
+  // Trigger calculation of layouts on both nodes manually otherwise the internal
+  // text container will not have any size
+//  (void)[text layoutThatFits:ASSizeRangeMake(CGSizeZero, container.frame.size)];
+//  (void)[container layoutThatFits:ASSizeRangeMake(CGSizeZero, container.frame.size)];
+//  [container layoutIfNeeded];
+//  [container.layer displayIfNeeded];
+
+  NSArray<UIAccessibilityElement *> *elements = container.accessibilityElements;
+  XCTAssertTrue(elements.count == 1);
+  XCTAssertTrue([[elements.firstObject accessibilityLabel] isEqualToString:@"hello"]);
+  // TODO: Also check for accessibilityFrame
+}
+
+- (void)testAccessibilityExposeA11YLinks
 {
   NSString *link = @"https://texturegroup.com";
   NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"Texture Website: %@", link]];
